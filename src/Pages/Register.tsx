@@ -1,3 +1,4 @@
+import Cookies from 'js-cookie';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setUserValues } from '../redux/slices/userSlice';
@@ -10,7 +11,7 @@ export const Register = () => {
 
   const dispatch = useDispatch();
 
-  const handleRegister = async (e: any) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
       username,
@@ -20,30 +21,33 @@ export const Register = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/user/register', {
+      const csrfToken = Cookies.get('XSRF-TOKEN');
+      console.log('CSRF Token in handleRegister:', csrfToken);
+
+      const response = await fetch('http://localhost:8000/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'X-XSRF-TOKEN': csrfToken || '', // Fallback to empty string if csrfToken is undefined
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify(data),
       });
 
-      if (response.status === 409) {
-        throw new Error('Username exists');
-      } else if (response.status === 403) {
-        throw new Error('Unauthorised Action');
-      } else if (!response.ok) {
+      if (!response.ok) {
+        const errorData = await response.json(); // Parse the error response
+        console.error('Validation Errors:', errorData);
         throw new Error('Server Error');
       }
 
       const result = await response.json();
+      console.log(result);
 
       dispatch(
         setUserValues({
           username: result.user.username,
           user_id: result.user.id,
-          auth_token: result.token,
         })
       );
 
@@ -104,3 +108,5 @@ export const Register = () => {
     </div>
   );
 };
+
+export default Register;

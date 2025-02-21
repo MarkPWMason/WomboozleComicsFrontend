@@ -1,56 +1,32 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { RootState } from '../store';
 
-type Data = {
-  user_id: number;
-  username: string;
-  auth_token: string;
+const loadUserFromLocalStorage = () => {
+  const userData = sessionStorage.getItem('user');
+  return userData ? JSON.parse(userData) : { username: '', user_id: 0 };
 };
 
-const initialState: Data = {
-  user_id: 0,
-  username: '',
-  auth_token: '',
-};
-
-// Store to sessionStorage
-const storeInLocalStorage = (state: Data) => {
-  sessionStorage.setItem('auth', JSON.stringify(state));
-};
-
-// Remove from sessionStorage
-const removeFromLocalStorage = () => {
-  sessionStorage.removeItem('auth');
-};
-
-// Load from sessionStorage (if available)
-const loadFromLocalStorage = (): Data => {
-  const savedAuth = sessionStorage.getItem('auth');
-  return savedAuth ? JSON.parse(savedAuth) : initialState; // Use `initialState` as fallback
-};
+const initialState = loadUserFromLocalStorage();
 
 export const userSlice = createSlice({
-  name: 'userSlice', // has to match the name of the reducer in store.ts
-  initialState: loadFromLocalStorage(), // Load user data if it's available in sessionStorage
+  name: 'userSlice',
+  initialState,
   reducers: {
     setUserValues: (state, action) => {
-      const { user_id, username, auth_token } = action.payload;
-      state.user_id = user_id;
+      const { username, user_id } = action.payload;
       state.username = username;
-      state.auth_token = auth_token;
-      storeInLocalStorage(state); // Store updated state in sessionStorage
+      state.user_id = user_id;
+      // Save user data to localStorage
+      sessionStorage.setItem('user', JSON.stringify({ username, user_id }));
     },
     removeUserValues: (state) => {
-      state.user_id = 0;
       state.username = '';
-      state.auth_token = '';
-      removeFromLocalStorage(); // Remove data from sessionStorage
+      state.user_id = 0;
+      // Remove user data from localStorage
+      sessionStorage.removeItem('user');
     },
   },
 });
 
 export const { setUserValues, removeUserValues } = userSlice.actions;
-export const selectUsername = (state: RootState) => state.userSlice.username;
-export const selectUserID = (state: RootState) => state.userSlice.user_id;
-export const selectAuthToken = (state: RootState) => state.userSlice.auth_token;
+export const selectUsername = (state: any) => state.userSlice.username;
 export default userSlice.reducer;
